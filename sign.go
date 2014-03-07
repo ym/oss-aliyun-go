@@ -1,10 +1,9 @@
-package s3
+package oss
 
 import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"launchpad.net/goamz/aws"
 	"log"
 	"sort"
 	"strings"
@@ -37,7 +36,7 @@ var s3ParamsToSign = map[string]bool{
 	"response-content-encoding":    true,
 }
 
-func sign(auth aws.Auth, method, canonicalPath string, params, headers map[string][]string) {
+func sign(auth Auth, method, canonicalPath string, params, headers map[string][]string) {
 	var md5, ctype, date, xamz string
 	var xamzDate bool
 	var sarray []string
