@@ -1,10 +1,9 @@
-package s3
+package oss
 
 import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"launchpad.net/goamz/aws"
 	"log"
 	"sort"
 	"strings"
@@ -37,7 +36,7 @@ var s3ParamsToSign = map[string]bool{
 	"response-content-encoding":    true,
 }
 
-func sign(auth aws.Auth, method, canonicalPath string, params, headers map[string][]string) {
+func sign(auth Auth, method, canonicalPath string, params, headers map[string][]string) {
 	var md5, ctype, date, xamz string
 	var xamzDate bool
 	var sarray []string
@@ -53,10 +52,10 @@ func sign(auth aws.Auth, method, canonicalPath string, params, headers map[strin
 				date = v[0]
 			}
 		default:
-			if strings.HasPrefix(k, "x-amz-") {
+			if strings.HasPrefix(k, "x-oss-") {
 				vall := strings.Join(v, ",")
 				sarray = append(sarray, k+":"+vall)
-				if k == "x-amz-date" {
+				if k == "x-oss-date" {
 					xamzDate = true
 					date = ""
 				}
@@ -73,7 +72,7 @@ func sign(auth aws.Auth, method, canonicalPath string, params, headers map[strin
 		// Query string request authentication alternative.
 		expires = true
 		date = v[0]
-		params["AWSAccessKeyId"] = []string{auth.AccessKey}
+		params["OSSAccessKeyId"] = []string{auth.AccessKey}
 	}
 
 	sarray = sarray[0:0]
@@ -103,7 +102,7 @@ func sign(auth aws.Auth, method, canonicalPath string, params, headers map[strin
 	if expires {
 		params["Signature"] = []string{string(signature)}
 	} else {
-		headers["Authorization"] = []string{"AWS " + auth.AccessKey + ":" + string(signature)}
+		headers["Authorization"] = []string{"OSS " + auth.AccessKey + ":" + string(signature)}
 	}
 	if debug {
 		log.Printf("Signature payload: %q", payload)

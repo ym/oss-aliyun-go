@@ -1,12 +1,12 @@
 //
-// goamz - Go packages to interact with the Amazon Web Services.
+// oss-aliyun-go - Go packages to interact with the Open Storage Service.
 //
 //   https://wiki.ubuntu.com/goamz
 //
 // Copyright (c) 2011 Canonical Ltd.
 //
 
-package s3
+package oss
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"launchpad.net/goamz/aws"
 	"log"
 	"net"
 	"net/http"
@@ -25,13 +24,20 @@ import (
 	"time"
 )
 
-const debug = false
+const (
+	debug       = false
+	DefaultHost = "http://oss.aliyuncs.com"
+)
 
 // The S3 type encapsulates operations with an S3 region.
+
+type Auth struct {
+	AccessKey string
+	SecretKey string
+}
+
 type S3 struct {
-	aws.Auth
-	aws.Region
-	private byte // Reserve the right of using private data.
+	Auth
 }
 
 // The Bucket type encapsulates operations with an S3 bucket.
@@ -48,7 +54,7 @@ type Owner struct {
 
 var (
 	attempts        = defaultAttempts
-	defaultAttempts = aws.AttemptStrategy{
+	defaultAttempts = AttemptStrategy{
 		Min:   5,
 		Total: 5 * time.Second,
 		Delay: 200 * time.Millisecond,
@@ -62,20 +68,18 @@ func RetryAttempts(retry bool) {
 	if retry {
 		attempts = defaultAttempts
 	} else {
-		attempts = aws.AttemptStrategy{}
+		attempts = AttemptStrategy{}
 	}
 }
 
 // New creates a new S3.
-func New(auth aws.Auth, region aws.Region) *S3 {
-	return &S3{auth, region, 0}
+func New(accessId, accessKey string) *S3 {
+	auth := Auth{accessId, accessKey}
+	return &S3{auth}
 }
 
 // Bucket returns a Bucket with the given name.
 func (s3 *S3) Bucket(name string) *Bucket {
-	if s3.Region.S3BucketEndpoint != "" || s3.Region.S3LowercaseBucket {
-		name = strings.ToLower(name)
-	}
 	return &Bucket{s3, name}
 }
 
@@ -87,13 +91,13 @@ var createBucketConfiguration = `<CreateBucketConfiguration xmlns="http://s3.ama
 // required for the region.
 //
 // See http://goo.gl/bh9Kq for details.
-func (s3 *S3) locationConstraint() io.Reader {
-	constraint := ""
-	if s3.Region.S3LocationConstraint {
-		constraint = fmt.Sprintf(createBucketConfiguration, s3.Region.Name)
-	}
-	return strings.NewReader(constraint)
-}
+// func (s3 *S3) locationConstraint() io.Reader {
+// 	constraint := ""
+// 	if s3.Region.S3LocationConstraint {
+// 		constraint = fmt.Sprintf(createBucketConfiguration, s3.Region.Name)
+// 	}
+// 	return strings.NewReader(constraint)
+// }
 
 type ACL string
 
@@ -111,14 +115,14 @@ const (
 // See http://goo.gl/ndjnR for details.
 func (b *Bucket) PutBucket(perm ACL) error {
 	headers := map[string][]string{
-		"x-amz-acl": {string(perm)},
+		"x-oss-acl": {string(perm)},
 	}
 	req := &request{
 		method:  "PUT",
 		bucket:  b.Name,
 		path:    "/",
 		headers: headers,
-		payload: b.locationConstraint(),
+		// payload: b.locationConstraint(),
 	}
 	return b.S3.query(req, nil)
 }
@@ -194,7 +198,7 @@ func (b *Bucket) PutReader(path string, r io.Reader, length int64, contType stri
 	headers := map[string][]string{
 		"Content-Length": {strconv.FormatInt(length, 10)},
 		"Content-Type":   {contType},
-		"x-amz-acl":      {string(perm)},
+		"x-oss-acl":      {string(perm)},
 	}
 	req := &request{
 		method:  "PUT",
@@ -431,18 +435,12 @@ func (s3 *S3) prepare(req *request) error {
 		}
 		req.signpath = req.path
 		if req.bucket != "" {
-			req.baseurl = s3.Region.S3BucketEndpoint
-			if req.baseurl == "" {
-				// Use the path method to address the bucket.
-				req.baseurl = s3.Region.S3Endpoint
-				req.path = "/" + req.bucket + req.path
-			} else {
-				// Just in case, prevent injection.
-				if strings.IndexAny(req.bucket, "/:@") >= 0 {
-					return fmt.Errorf("bad S3 bucket: %q", req.bucket)
-				}
-				req.baseurl = strings.Replace(req.baseurl, "${bucket}", req.bucket, -1)
+			req.baseurl = DefaultHost
+			// Just in case, prevent injection.
+			if strings.IndexAny(req.bucket, "/:@") >= 0 {
+				return fmt.Errorf("bad oss bucket: %q", req.bucket)
 			}
+			req.path = "/" + req.bucket + req.path
 			req.signpath = "/" + req.bucket + req.signpath
 		}
 	}
@@ -454,7 +452,7 @@ func (s3 *S3) prepare(req *request) error {
 		return fmt.Errorf("bad S3 endpoint URL %q: %v", req.baseurl, err)
 	}
 	req.headers["Host"] = []string{u.Host}
-	req.headers["Date"] = []string{time.Now().In(time.UTC).Format(time.RFC1123)}
+	req.headers["Date"] = []string{time.Now().In(time.UTC).Format(http.TimeFormat)}
 	sign(s3.Auth, req.method, req.signpath, req.params, req.headers)
 	return nil
 }
