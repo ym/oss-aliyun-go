@@ -72,7 +72,7 @@ func sign(auth Auth, method, canonicalPath string, params, headers map[string][]
 		// Query string request authentication alternative.
 		expires = true
 		date = v[0]
-		params["AWSAccessKeyId"] = []string{auth.AccessKey}
+		params["OSSAccessKeyId"] = []string{auth.AccessKey}
 	}
 
 	sarray = sarray[0:0]
