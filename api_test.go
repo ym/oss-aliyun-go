@@ -60,3 +60,11 @@ func TestDelBucket(t *testing.T) {
 		t.Error("Unable del bucket:", err)
 	}
 }
+
+func TestURL(t *testing.T) {
+	bucket := New(accessId, accessKey).Bucket(testBucket)
+	url := bucket.URL("readme")
+	if url != "http://oss.aliyuncs.com/pinidea-test/readme" {
+		t.Error("Unable get correct url:", url)
+	}
+}
