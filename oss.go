@@ -1,5 +1,5 @@
 //
-// goamz - Go packages to interact with the Amazon Web Services.
+// oss-aliyun-go - Go packages to interact with the Open Storage Service.
 //
 //   https://wiki.ubuntu.com/goamz
 //
