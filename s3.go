@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"launchpad.net/goamz/aws"
 	"log"
 	"net"
 	"net/http"
@@ -55,7 +54,7 @@ type Owner struct {
 
 var (
 	attempts        = defaultAttempts
-	defaultAttempts = aws.AttemptStrategy{
+	defaultAttempts = AttemptStrategy{
 		Min:   5,
 		Total: 5 * time.Second,
 		Delay: 200 * time.Millisecond,
@@ -69,7 +68,7 @@ func RetryAttempts(retry bool) {
 	if retry {
 		attempts = defaultAttempts
 	} else {
-		attempts = aws.AttemptStrategy{}
+		attempts = AttemptStrategy{}
 	}
 }
 
