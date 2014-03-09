@@ -22,8 +22,16 @@ func TestGet(t *testing.T) {
 	bucket := New(accessId, accessKey).Bucket(testBucket)
 	data, err := bucket.Get("readme")
 	if err != nil {
-		t.Error("unable get resource", err)
+		t.Error("Unable get object", err)
 		return
 	}
 	log.Println(string(data))
+}
+
+func TestDel(t *testing.T) {
+	bucket := New(accessId, accessKey).Bucket(testBucket)
+	err := bucket.Del("readme")
+	if err != nil {
+		t.Error("Unable del object")
+	}
 }
