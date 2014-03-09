@@ -434,21 +434,14 @@ func (s3 *S3) prepare(req *request) error {
 		if !strings.HasPrefix(req.path, "/") {
 			req.path = "/" + req.path
 		}
-		log.Println("####req.path", req.path)
 		req.signpath = req.path
 		if req.bucket != "" {
-			req.baseurl = s3.Region.S3BucketEndpoint
-			if req.baseurl == "" {
-				// Use the path method to address the bucket.
-				// req.baseurl = s3.Region.S3Endpoint
-				req.path = "/" + req.bucket + req.path
-			} else {
-				// Just in case, prevent injection.
-				if strings.IndexAny(req.bucket, "/:@") >= 0 {
-					return fmt.Errorf("bad S3 bucket: %q", req.bucket)
-				}
-				req.baseurl = strings.Replace(req.baseurl, "${bucket}", req.bucket, -1)
+			req.baseurl = DefaultHost
+			// Just in case, prevent injection.
+			if strings.IndexAny(req.bucket, "/:@") >= 0 {
+				return fmt.Errorf("bad oss bucket: %q", req.bucket)
 			}
+			req.path = "/" + req.bucket + req.path
 			req.signpath = "/" + req.bucket + req.signpath
 		}
 	}
@@ -460,7 +453,7 @@ func (s3 *S3) prepare(req *request) error {
 		return fmt.Errorf("bad S3 endpoint URL %q: %v", req.baseurl, err)
 	}
 	req.headers["Host"] = []string{u.Host}
-	req.headers["Date"] = []string{time.Now().In(time.UTC).Format(time.RFC1123)}
+	req.headers["Date"] = []string{time.Now().In(time.UTC).Format(http.TimeFormat)}
 	sign(s3.Auth, req.method, req.signpath, req.params, req.headers)
 	return nil
 }

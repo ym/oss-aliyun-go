@@ -52,10 +52,10 @@ func sign(auth Auth, method, canonicalPath string, params, headers map[string][]
 				date = v[0]
 			}
 		default:
-			if strings.HasPrefix(k, "x-amz-") {
+			if strings.HasPrefix(k, "x-oss-") {
 				vall := strings.Join(v, ",")
 				sarray = append(sarray, k+":"+vall)
-				if k == "x-amz-date" {
+				if k == "x-oss-date" {
 					xamzDate = true
 					date = ""
 				}
@@ -102,7 +102,7 @@ func sign(auth Auth, method, canonicalPath string, params, headers map[string][]
 	if expires {
 		params["Signature"] = []string{string(signature)}
 	} else {
-		headers["Authorization"] = []string{"AWS " + auth.AccessKey + ":" + string(signature)}
+		headers["Authorization"] = []string{"OSS " + auth.AccessKey + ":" + string(signature)}
 	}
 	if debug {
 		log.Printf("Signature payload: %q", payload)

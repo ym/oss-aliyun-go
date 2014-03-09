@@ -20,7 +20,7 @@ func TestNew(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	bucket := New(accessId, accessKey).Bucket(testBucket)
-	data, err := bucket.Get("test.txt")
+	data, err := bucket.Get("readme")
 	if err != nil {
 		t.Error("unable get resource", err)
 		return
