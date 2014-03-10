@@ -27,6 +27,12 @@ import (
 const (
 	debug       = false
 	DefaultHost = "http://oss.aliyuncs.com"
+
+	HangZhou         = "oss-cn-hangzhou"
+	QingDao          = "oss-cn-qingdao"
+	HangZhouInternal = "oss-cn-hangzhou-internal"
+	QingdaoInternal  = "oss-cn-qingdao-internal"
+	DefaultRegion    = "oss"
 )
 
 // The S3 type encapsulates operations with an S3 region.
@@ -38,6 +44,7 @@ type Auth struct {
 
 type OSS struct {
 	Auth
+	Region string
 }
 
 // The Bucket type encapsulates operations with an S3 bucket.
@@ -73,9 +80,9 @@ func RetryAttempts(retry bool) {
 }
 
 // New creates a new S3.
-func New(accessId, accessKey string) *OSS {
+func New(region, accessId, accessKey string) *OSS {
 	auth := Auth{accessId, accessKey}
-	return &OSS{auth}
+	return &OSS{auth, region}
 }
 
 // Bucket returns a Bucket with the given name.
@@ -83,7 +90,7 @@ func (oss *OSS) Bucket(name string) *Bucket {
 	return &Bucket{oss, name}
 }
 
-var createBucketConfiguration = `<CreateBucketConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"> 
+var createBucketConfiguration = `<CreateBucketConfiguration xmlns="http://doc.oss.aliyuncs.com"> 
   <LocationConstraint>%s</LocationConstraint> 
 </CreateBucketConfiguration>`
 
@@ -219,7 +226,7 @@ func (b *Bucket) Del(path string) error {
 		bucket: b.Name,
 		path:   path,
 	}
-    return b.OSS.query(req, nil)
+	return b.OSS.query(req, nil)
 }
 
 // The ListResp type holds the results of a List bucket operation.
@@ -434,8 +441,13 @@ func (oss *OSS) prepare(req *request) error {
 			req.path = "/" + req.path
 		}
 		req.signpath = req.path
+
+		req.baseurl = DefaultHost
+		if oss.Region != "" && oss.Region != DefaultRegion {
+			req.baseurl = fmt.Sprintf("http://%s.aliyuncs.com", oss.Region)
+		}
+
 		if req.bucket != "" {
-			req.baseurl = DefaultHost
 			// Just in case, prevent injection.
 			if strings.IndexAny(req.bucket, "/:@") >= 0 {
 				return fmt.Errorf("bad oss bucket: %q", req.bucket)
@@ -460,7 +472,8 @@ func (oss *OSS) prepare(req *request) error {
 // run sends req and returns the http response from the server.
 func (oss *OSS) run(req *request) (*http.Response, error) {
 	if debug {
-		log.Printf("Running OSS request: %#v", req) }
+		log.Printf("Running OSS request: %#v", req)
+	}
 
 	u, err := req.url()
 	if err != nil {
@@ -480,6 +493,7 @@ func (oss *OSS) run(req *request) (*http.Response, error) {
 		hreq.ContentLength, _ = strconv.ParseInt(v[0], 10, 64)
 		delete(req.headers, "Content-Length")
 	}
+
 	if req.payload != nil {
 		hreq.Body = ioutil.NopCloser(req.payload)
 	}
