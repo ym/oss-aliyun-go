@@ -62,7 +62,7 @@ func (b *Bucket) ListMulti(prefix, delim string) (multis []*Multi, prefixes []st
 			params: params,
 		}
 		var resp listMultiResp
-		err := b.S3.query(req, &resp)
+		err := b.OSS.query(req, &resp)
 		if shouldRetry(err) && attempt.HasNext() {
 			continue
 		}
@@ -126,7 +126,7 @@ func (b *Bucket) InitMulti(key string, contType string, perm ACL) (*Multi, error
 		UploadId string `xml:"UploadId"`
 	}
 	for attempt := attempts.Start(); attempt.Next(); {
-		err = b.S3.query(req, &resp)
+		err = b.OSS.query(req, &resp)
 		if !shouldRetry(err) {
 			break
 		}
@@ -171,11 +171,11 @@ func (m *Multi) putPart(n int, r io.ReadSeeker, partSize int64, md5b64 string) (
 			params:  params,
 			payload: r,
 		}
-		err = m.Bucket.S3.prepare(req)
+		err = m.Bucket.OSS.prepare(req)
 		if err != nil {
 			return Part{}, err
 		}
-		hresp, err := m.Bucket.S3.run(req)
+		hresp, err := m.Bucket.OSS.run(req)
 		if shouldRetry(err) && attempt.HasNext() {
 			continue
 		}
@@ -247,7 +247,7 @@ func (m *Multi) ListParts() ([]Part, error) {
 			params: params,
 		}
 		var resp listPartsResp
-		err := m.Bucket.S3.query(req, &resp)
+		err := m.Bucket.OSS.query(req, &resp)
 		if shouldRetry(err) && attempt.HasNext() {
 			continue
 		}
@@ -365,7 +365,7 @@ func (m *Multi) Complete(parts []Part) error {
 			params:  params,
 			payload: bytes.NewReader(data),
 		}
-		err := m.Bucket.S3.query(req, nil)
+		err := m.Bucket.OSS.query(req, nil)
 		if shouldRetry(err) && attempt.HasNext() {
 			continue
 		}
@@ -400,7 +400,7 @@ func (m *Multi) Abort() error {
 			path:   m.Key,
 			params: params,
 		}
-		err := m.Bucket.S3.query(req, nil)
+		err := m.Bucket.OSS.query(req, nil)
 		if shouldRetry(err) && attempt.HasNext() {
 			continue
 		}

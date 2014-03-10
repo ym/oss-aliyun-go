@@ -36,13 +36,13 @@ type Auth struct {
 	SecretKey string
 }
 
-type S3 struct {
+type OSS struct {
 	Auth
 }
 
 // The Bucket type encapsulates operations with an S3 bucket.
 type Bucket struct {
-	*S3
+	*OSS
 	Name string
 }
 
@@ -73,14 +73,14 @@ func RetryAttempts(retry bool) {
 }
 
 // New creates a new S3.
-func New(accessId, accessKey string) *S3 {
+func New(accessId, accessKey string) *OSS {
 	auth := Auth{accessId, accessKey}
-	return &S3{auth}
+	return &OSS{auth}
 }
 
 // Bucket returns a Bucket with the given name.
-func (s3 *S3) Bucket(name string) *Bucket {
-	return &Bucket{s3, name}
+func (oss *OSS) Bucket(name string) *Bucket {
+	return &Bucket{oss, name}
 }
 
 var createBucketConfiguration = `<CreateBucketConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"> 
@@ -124,7 +124,7 @@ func (b *Bucket) PutBucket(perm ACL) error {
 		headers: headers,
 		// payload: b.locationConstraint(),
 	}
-	return b.S3.query(req, nil)
+	return b.OSS.query(req, nil)
 }
 
 // DelBucket removes an existing S3 bucket. All objects in the bucket must
@@ -138,7 +138,7 @@ func (b *Bucket) DelBucket() (err error) {
 		path:   "/",
 	}
 	for attempt := attempts.Start(); attempt.Next(); {
-		err = b.S3.query(req, nil)
+		err = b.OSS.query(req, nil)
 		if !shouldRetry(err) {
 			break
 		}
@@ -167,12 +167,12 @@ func (b *Bucket) GetReader(path string) (rc io.ReadCloser, err error) {
 		bucket: b.Name,
 		path:   path,
 	}
-	err = b.S3.prepare(req)
+	err = b.OSS.prepare(req)
 	if err != nil {
 		return nil, err
 	}
 	for attempt := attempts.Start(); attempt.Next(); {
-		hresp, err := b.S3.run(req)
+		hresp, err := b.OSS.run(req)
 		if shouldRetry(err) && attempt.HasNext() {
 			continue
 		}
@@ -207,7 +207,7 @@ func (b *Bucket) PutReader(path string, r io.Reader, length int64, contType stri
 		headers: headers,
 		payload: r,
 	}
-	return b.S3.query(req, nil)
+	return b.OSS.query(req, nil)
 }
 
 // Del removes an object from the S3 bucket.
@@ -219,7 +219,7 @@ func (b *Bucket) Del(path string) error {
 		bucket: b.Name,
 		path:   path,
 	}
-	return b.S3.query(req, nil)
+    return b.OSS.query(req, nil)
 }
 
 // The ListResp type holds the results of a List bucket operation.
@@ -321,7 +321,7 @@ func (b *Bucket) List(prefix, delim, marker string, max int) (result *ListResp, 
 	}
 	result = &ListResp{}
 	for attempt := attempts.Start(); attempt.Next(); {
-		err = b.S3.query(req, result)
+		err = b.OSS.query(req, result)
 		if !shouldRetry(err) {
 			break
 		}
@@ -340,7 +340,7 @@ func (b *Bucket) URL(path string) string {
 		bucket: b.Name,
 		path:   path,
 	}
-	err := b.S3.prepare(req)
+	err := b.OSS.prepare(req)
 	if err != nil {
 		panic(err)
 	}
@@ -360,7 +360,7 @@ func (b *Bucket) SignedURL(path string, expires time.Time) string {
 		path:   path,
 		params: url.Values{"Expires": {strconv.FormatInt(expires.Unix(), 10)}},
 	}
-	err := b.S3.prepare(req)
+	err := b.OSS.prepare(req)
 	if err != nil {
 		panic(err)
 	}
@@ -386,7 +386,7 @@ type request struct {
 func (req *request) url() (*url.URL, error) {
 	u, err := url.Parse(req.baseurl)
 	if err != nil {
-		return nil, fmt.Errorf("bad S3 endpoint URL %q: %v", req.baseurl, err)
+		return nil, fmt.Errorf("bad OSS endpoint URL %q: %v", req.baseurl, err)
 	}
 	u.RawQuery = req.params.Encode()
 	u.Path = req.path
@@ -396,12 +396,12 @@ func (req *request) url() (*url.URL, error) {
 // query prepares and runs the req request.
 // If resp is not nil, the XML data contained in the response
 // body will be unmarshalled on it.
-func (s3 *S3) query(req *request, resp interface{}) error {
-	err := s3.prepare(req)
+func (oss *OSS) query(req *request, resp interface{}) error {
+	err := oss.prepare(req)
 	if err != nil {
 		return err
 	}
-	hresp, err := s3.run(req)
+	hresp, err := oss.run(req)
 	if err != nil {
 		return err
 	}
@@ -413,7 +413,7 @@ func (s3 *S3) query(req *request, resp interface{}) error {
 }
 
 // prepare sets up req to be delivered to S3.
-func (s3 *S3) prepare(req *request) error {
+func (oss *OSS) prepare(req *request) error {
 	if !req.prepared {
 		req.prepared = true
 		if req.method == "" {
@@ -449,19 +449,18 @@ func (s3 *S3) prepare(req *request) error {
 	// server has handled a previous attempt.
 	u, err := url.Parse(req.baseurl)
 	if err != nil {
-		return fmt.Errorf("bad S3 endpoint URL %q: %v", req.baseurl, err)
+		return fmt.Errorf("bad oss endpoint URL %q: %v", req.baseurl, err)
 	}
 	req.headers["Host"] = []string{u.Host}
 	req.headers["Date"] = []string{time.Now().In(time.UTC).Format(http.TimeFormat)}
-	sign(s3.Auth, req.method, req.signpath, req.params, req.headers)
+	sign(oss.Auth, req.method, req.signpath, req.params, req.headers)
 	return nil
 }
 
 // run sends req and returns the http response from the server.
-func (s3 *S3) run(req *request) (*http.Response, error) {
+func (oss *OSS) run(req *request) (*http.Response, error) {
 	if debug {
-		log.Printf("Running S3 request: %#v", req)
-	}
+		log.Printf("Running OSS request: %#v", req) }
 
 	u, err := req.url()
 	if err != nil {
