@@ -243,11 +243,12 @@ func (b *Bucket) Head(path string) (resp *http.Response, err error) {
 
 // The ListResp type holds the results of a List bucket operation.
 type ListResp struct {
-	Name      string
-	Prefix    string
-	Delimiter string
-	Marker    string
-	MaxKeys   int
+	Name       string
+	Prefix     string
+	Delimiter  string
+	Marker     string
+	MaxKeys    int
+	NextMarker string
 	// IsTruncated is true if the results have been truncated because
 	// there are more keys and prefixes than can fit in MaxKeys.
 	// N.B. this is the opposite sense to that documented (incorrectly) in
@@ -259,18 +260,18 @@ type ListResp struct {
 
 // The ContentInfo type holds individual file's information.
 type ContentInfo struct {
-	Key string
+	Key          string
 	LastModified string
-	ETag string
-	Type string
-	Size int64
+	ETag         string
+	Type         string
+	Size         int64
 	StorageClass string
-	Owner OwnerInfo
+	Owner        OwnerInfo
 }
 
 // The OwnerInfo type holds file's Owner information.
 type OwnerInfo struct {
-	ID string
+	ID          string
 	DisplayName string
 }
 
@@ -301,7 +302,7 @@ type Key struct {
 // will return keys alphabetically greater than the marker.
 //
 // The max parameter specifies how many keys + common prefixes to return in
-// the response. The default is 1000.
+// the response. The default is 100.
 //
 // For example, given these keys in a bucket:
 //
@@ -317,7 +318,7 @@ type Key struct {
 //
 //     &ListResp{
 //         Name:      "sample-bucket",
-//         MaxKeys:   1000,
+//         MaxKeys:   100,
 //         Delimiter: "/",
 //         Contents:  []Key{
 //             {Key: "index.html", "index2.html"},
@@ -332,7 +333,7 @@ type Key struct {
 //
 //     &ListResp{
 //         Name:      "sample-bucket",
-//         MaxKeys:   1000,
+//         MaxKeys:   100,
 //         Delimiter: "/",
 //         Prefix:    "photos/2006/",
 //         CommonPrefixes: []string{
@@ -348,7 +349,7 @@ func (b *Bucket) List(prefix, delim, marker string, max int) (result *ListResp, 
 		"delimiter": {delim},
 		"marker":    {marker},
 	}
-	if max != 0 {
+	if max > 0 && max <= 1000 {
 		params["max-keys"] = []string{strconv.FormatInt(int64(max), 10)}
 	}
 	req := &request{
