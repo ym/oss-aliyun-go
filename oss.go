@@ -253,8 +253,25 @@ type ListResp struct {
 	// N.B. this is the opposite sense to that documented (incorrectly) in
 	// http://goo.gl/YjQTc
 	IsTruncated    bool
-	Contents       []Key
+	Contents       []ContentInfo
 	CommonPrefixes []string `xml:">Prefix"`
+}
+
+// The ContentInfo type holds individual file's information.
+type ContentInfo struct {
+	Key string
+	LastModified string
+	ETag string
+	Type string
+	Size int64
+	StorageClass string
+	Owner OwnerInfo
+}
+
+// The OwnerInfo type holds file's Owner information.
+type OwnerInfo struct {
+	ID string
+	DisplayName string
 }
 
 // The Key type represents an item stored in an S3 bucket.
