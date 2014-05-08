@@ -229,6 +229,18 @@ func (b *Bucket) Del(path string) error {
 	return b.OSS.query(req, nil)
 }
 
+// Head retrieves metadata from an object without returning the object itself.
+// This operation is useful if you are interested only in an object's metadata.
+func (b *Bucket) Head(path string) (resp *http.Response, err error) {
+	req := &request{
+		method: "HEAD",
+		bucket: b.Name,
+		path:   path,
+	}
+	resp, err = b.OSS.queryRaw(req)
+	return
+}
+
 // The ListResp type holds the results of a List bucket operation.
 type ListResp struct {
 	Name      string
@@ -417,6 +429,17 @@ func (oss *OSS) query(req *request, resp interface{}) error {
 	}
 	hresp.Body.Close()
 	return nil
+}
+
+// queryRaw prepares and runs the req request but returns raw response instead of decode it.
+// It's the caller's duty to call hresp.Body.Close() after handled http response.
+func (oss *OSS) queryRaw(req *request) (*http.Response, error) {
+	err := oss.prepare(req)
+	if err != nil {
+		return nil, err
+	}
+	hresp, err := oss.run(req)
+	return hresp, err
 }
 
 // prepare sets up req to be delivered to S3.
