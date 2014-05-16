@@ -50,7 +50,8 @@ type Auth struct {
 
 type OSS struct {
 	Auth
-	Region string
+	Region   string
+	Endpoint string
 }
 
 // The Bucket type encapsulates operations with an S3 bucket.
