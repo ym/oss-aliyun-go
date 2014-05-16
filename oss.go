@@ -28,10 +28,16 @@ const (
 	debug       = false
 	DefaultHost = "http://oss.aliyuncs.com"
 
-	HangZhou         = "oss-cn-hangzhou"
-	QingDao          = "oss-cn-qingdao"
-	HangZhouInternal = "oss-cn-hangzhou-internal"
+	Hangzhou         = "oss-cn-hangzhou"
+	Qingdao          = "oss-cn-qingdao"
+	Beijing          = "oss-cn-beijing"
+	Hongkong         = "oss-cn-hongkong"
+
+	HangzhouInternal = "oss-cn-hangzhou-internal"
 	QingdaoInternal  = "oss-cn-qingdao-internal"
+	BeijingInternal  = "oss-cn-beijing-internal"
+	HongkongInternal = "oss-cn-hongkong-internal"
+
 	DefaultRegion    = "oss"
 )
 
