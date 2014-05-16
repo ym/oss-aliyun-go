@@ -89,7 +89,7 @@ func RetryAttempts(retry bool) {
 // New creates a new S3.
 func New(region, accessId, accessKey string) *OSS {
 	auth := Auth{accessId, accessKey}
-	return &OSS{auth, region}
+	return &OSS{auth, region, DefaultEndpoint}
 }
 
 // Bucket returns a Bucket with the given name.
