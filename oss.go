@@ -25,20 +25,20 @@ import (
 )
 
 const (
-	debug       = false
-	DefaultHost = "http://oss.aliyuncs.com"
+	debug           = false
+	DefaultEndpoint = "http://oss.aliyuncs.com"
 
-	Hangzhou         = "oss-cn-hangzhou"
-	Qingdao          = "oss-cn-qingdao"
-	Beijing          = "oss-cn-beijing"
-	Hongkong         = "oss-cn-hongkong"
+	Hangzhou = "http://oss-cn-hangzhou.aliyuncs.com"
+	Qingdao  = "http://oss-cn-qingdao.aliyuncs.com"
+	Beijing  = "http://oss-cn-beijing.aliyuncs.com"
+	Hongkong = "http://oss-cn-hongkong.aliyuncs.com"
 
-	HangzhouInternal = "oss-cn-hangzhou-internal"
-	QingdaoInternal  = "oss-cn-qingdao-internal"
-	BeijingInternal  = "oss-cn-beijing-internal"
-	HongkongInternal = "oss-cn-hongkong-internal"
+	HangzhouInternal = "http://oss-cn-hangzhou-internal.aliyuncs.com"
+	QingdaoInternal  = "http://oss-cn-qingdao-internal.aliyuncs.com"
+	BeijingInternal  = "http://oss-cn-beijing-internal.aliyuncs.com"
+	HongkongInternal = "http://oss-cn-hongkong-internal.aliyuncs.com"
 
-	DefaultRegion    = "oss"
+	DefaultRegion = "oss"
 )
 
 // The S3 type encapsulates operations with an S3 region.
@@ -489,9 +489,9 @@ func (oss *OSS) prepare(req *request) error {
 		}
 		req.signpath = req.path
 
-		req.baseurl = DefaultHost
-		if oss.Region != "" && oss.Region != DefaultRegion {
-			req.baseurl = fmt.Sprintf("http://%s.aliyuncs.com", oss.Region)
+		req.baseurl = DefaultEndpoint
+		if oss.Endpoint != "" {
+			req.baseurl = oss.Endpoint
 		}
 
 		if req.bucket != "" {
